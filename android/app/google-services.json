@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "289287413829",
+    "project_id": "shopping-list-ac723",
+    "storage_bucket": "shopping-list-ac723.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:289287413829:android:ca992ee3cdf5fc8212432c",
+        "android_client_info": {
+          "package_name": "com.example.grocery_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPdtm9yq1xLkRivv69-rxrH__xqxlLt3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:289287413829:android:c1d3e29b97fe584412432c",
+        "android_client_info": {
+          "package_name": "com.example.shopping_list"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPdtm9yq1xLkRivv69-rxrH__xqxlLt3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
