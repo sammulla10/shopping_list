@@ -1,5 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shopping_list/bloc/grocery_bloc.dart';
+// import 'package:shopping_list/models/category.dart';
 import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/pages/new_item.dart';
 
@@ -11,103 +15,160 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
-  final Stream<QuerySnapshot> _groceryStream =
-      FirebaseFirestore.instance.collection('grocery_items').snapshots();
-  List<GroceryItem> grocery_list = [];
+  late List grolis;
+  Box grocery_box = Hive.box('grocery_box');
+  late GroceryBloc _groceryBloc;
 
-  Future delete_item(documentId,docName) async {
-    await FirebaseFirestore.instance
-        .collection('grocery_items')
-        .doc(documentId)
-        .delete();
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Successfully deleted ${docName}"),duration: Duration(seconds: 3),
+  void navigateToNewItemPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: ((context) => const NewItem()),
       ),
     );
   }
 
-  void navigateToNewItem() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: ((context) => NewItem())));
+  @override
+  void initState() {
+    _groceryBloc = GroceryBloc();
+    grolis = grocery_box.values.toList();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _groceryBloc.close();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.amber[100],
-        title: Text("Your Groceries"),
-        actions: [
-          IconButton(onPressed: navigateToNewItem, icon: Icon(Icons.add)),
-        ],
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-          stream: _groceryStream,
-          builder:
-              (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-            if (snapshot.hasError) {
-              return Text('Something went wrong ${snapshot.error}');
-            }
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return CircularProgressIndicator();
-            } else if (snapshot.hasData) {
-              return ListView(
-                children: snapshot.data!.docs.map((DocumentSnapshot document) {
-                  Map<String, dynamic> data =
-                      document.data()! as Map<String, dynamic>;
-                  return Card(
-                    color: Theme.of(context).copyWith().cardColor,
-                    child: ListTile(
-                      leading: Container(
-                        height: 24,
-                        width: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(data['category']['color']),
-                        ),
-                      ),
-                      title: Text(
-                        data['name'],
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      subtitle: Text(
-                        '${data['quantity']}',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      trailing: IconButton(
-                        onPressed: () {
-                          delete_item(data['id'],data['name']);
-                        },
-                        icon: Icon(Icons.delete),
-                        color: Color.fromARGB(255, 196, 64, 54),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
+    // final grocery_box = Hive.box('grocery_box');
 
-              //  return ListView.builder(
-              //   itemCount: snapshot.data!.docs.length ,
-              //   itemBuilder: (context,index){
-              //     return  Dismissible(
-              //     key: ValueKey(_groceryStream),
-              //     onDismissed: (direction) {},
-              //     child: ListTile(
-              //       leading: Container(
-              //         color: snapshot.data!.docs[index].category.color,
-              //         height: 24,
-              //         width: 24,
-              //       ),
-              //       title: Text(_groceryStream[index].name),
-              //       trailing: Text(_groceryStream[index].quantity.toString()),
-              //     );
-              //     });
-            }
-            return CircularProgressIndicator();
-          }),
-    );
+    return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.amber[100],
+          title: const Text("Your Groceries"),
+          actions: [
+            IconButton(
+              onPressed: () {
+                _groceryBloc.add(ClearBoxEvent());
+              },
+              icon: const Icon(Icons.clear),
+              tooltip: 'Clear all entries',
+            ),
+            IconButton(
+              onPressed: navigateToNewItemPage,
+              icon: const Icon(Icons.add),
+              tooltip: 'Add items',
+            ),
+          ],
+        ),
+        body: ValueListenableBuilder(
+          valueListenable: grocery_box.listenable(),
+          builder: (context, value, child) {
+            grolis = grocery_box.values.toList();
+            return grolis.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: Center(
+                      child: Text('No Data'),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    reverse: true,
+                    itemCount: grolis.length,
+                    itemBuilder: (context, index) {
+                      debugPrint('this is item ${grolis[index]}');
+                      // debugPrint(grolis[index].id);
+
+                      // debugPrint('this is index id  ${grolis[index]['id']}');
+                      var data = grolis[index] as GroceryItem;
+
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Container(
+                                height: 50,
+                                width: 70,
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                      fit: BoxFit.fill,
+                                      image: AssetImage(
+                                          'assets/images/${grolis[index].category.img}')),
+                                  shape: BoxShape.rectangle,
+                                  // color: grolis[index].category.color,
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${grolis[index].name}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                  const SizedBox(
+                                    height: 8,
+                                  ),
+                                  Text(
+                                    '${grolis[index].category.title}',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: grolis[index].category.color,
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              Text('${grolis[index].quantity}'),
+                              IconButton(
+                                onPressed: () {
+                                  _groceryBloc
+                                      .add(DeleteDataEvent(grolis[index]));
+                                },
+                                icon: const Icon(Icons.delete),
+                                color: const Color.fromARGB(255, 196, 64, 54),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // ListTile(
+                        //   leading: Container(
+                        //     color:grolis[index].category.color,
+                        //     height: 24,
+                        //     width: 24,
+                        //   ),
+                        //   title: Text(
+                        //     '${grolis[index].name}',
+                        //     // '',
+                        //     style: const TextStyle(
+                        //         fontWeight: FontWeight.bold, fontSize: 16),
+                        //   ),
+                        //   subtitle: Text(
+                        //     '${grolis[index].quantity}',
+                        //     // '',
+                        //     style: const TextStyle(fontWeight: FontWeight.bold),
+                        //   ),
+                        //   trailing: IconButton(
+                        //     onPressed: () {
+                        //       _groceryBloc
+                        //           .add(DeleteDataEvent(grolis[index]));
+                        //     },
+                        //     icon: const Icon(Icons.delete),
+                        //     color: const Color.fromARGB(255, 196, 64, 54),
+                        //   ),
+                        // ),
+                      );
+                    });
+          },
+        ));
   }
 }
