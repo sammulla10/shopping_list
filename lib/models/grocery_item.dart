@@ -1,12 +1,19 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
+import 'package:hive/hive.dart';
 import 'package:shopping_list/models/category.dart';
+part 'grocery_item.g.dart';
 
+@HiveType(typeId: 1)
 class GroceryItem {
+  @HiveField(0)
   final String? id;
+  @HiveField(1)
   final String name;
+  @HiveField(2)
   final int quantity;
+  @HiveField(3)
   final Category category;
 
   GroceryItem({

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:shopping_list/bloc/grocery_bloc.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/category.dart';
 import 'package:shopping_list/models/grocery_item.dart';
@@ -12,73 +14,54 @@ class NewItem extends StatefulWidget {
 }
 
 class _NewItemState extends State<NewItem> {
+  late GroceryBloc _groceryBloc;
   final _formkey = GlobalKey<FormState>();
-  var _enteredName = '';
+  var _enteredName = TextEditingController();
   var _enteredQuantity = 1;
+  var _metricController = TextEditingController(text: metric[0]);
   var _selectedCategory = categories[Categories.vegetables]!;
 
+  @override
+  void initState() {
+    _groceryBloc = GroceryBloc();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _groceryBloc.close();
+    super.dispose();
+  }
+
   void _saveItem() async {
-    if (_formkey.currentState!.validate()) {
-      _formkey.currentState!.save();
+    final newItem = GroceryItem(
+      id: DateTime.now().toIso8601String(),
+      name: _enteredName.text.toString(),
+      quantity: _enteredQuantity,
+      category: Category(_selectedCategory.title, _selectedCategory.color,
+          _selectedCategory.img),
+    );
 
-      final CollectionReference grocery_item =
-          FirebaseFirestore.instance.collection('grocery_items');
+    _groceryBloc.add(AddDataEvent(newItem));
 
-      final newItem = GroceryItem(
-          name: _enteredName,
-          quantity: _enteredQuantity,
-          category: Category(_selectedCategory.title, _selectedCategory.color));
-
-      await grocery_item.add(newItem.toMap()).then(
-        (value) {
-          grocery_item
-              .doc(
-            value.id,
-          )
-              .update(
-            {'id': '${value.id}'},
-          );
-        },
-      ).whenComplete(
-        () {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Added Successfully',
-              ),
-            ),
-          );
-        },
-      ).catchError(
-        (error, stackTrace) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error, $error'),
-            ),
-          );
-        },
-      );
-      
-      Navigator.of(context).pop();
-    }
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Add a New Item"),
+        title: const Text("Add a New Item"),
       ),
       body: Padding(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(12),
         child: Form(
           key: _formkey,
           child: Column(
             children: [
               TextFormField(
                 maxLength: 50,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   label: Text('Name'),
                 ),
                 validator: (value) {
@@ -88,18 +71,19 @@ class _NewItemState extends State<NewItem> {
                       value.trim().length >= 50) {
                     return "Must be between 2 to 50 characters";
                   }
-                  return null;
+                  return value;
                 },
-                onSaved: (newValue) {
-                  _enteredName = newValue!;
-                },
+                controller: _enteredName,
               ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
+                    // child: Row(
+                    //   children: [
+                    //     Expanded(
                     child: TextFormField(
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         label: Text('Quantity'),
                       ),
                       keyboardType: TextInputType.number,
@@ -120,6 +104,19 @@ class _NewItemState extends State<NewItem> {
                   SizedBox(
                     width: 8,
                   ),
+                  // Expanded(
+                  //   child: DropdownButtonFormField(
+                  //       items: [
+                  //         for (final met in metric)
+                  //           DropdownMenuItem(value: met, child: Text(met))
+                  //       ],
+                  //       onChanged: (value) {
+                  //         setState(() {
+                  //           _metricController =
+                  //               value! as TextEditingController;
+                  //         });
+                  //       }),
+                  // )
                   Expanded(
                     child: DropdownButtonFormField(
                         value: _selectedCategory,
@@ -134,7 +131,7 @@ class _NewItemState extends State<NewItem> {
                                     width: 16,
                                     color: category.value.color,
                                   ),
-                                  SizedBox(
+                                  const SizedBox(
                                     width: 6,
                                   ),
                                   Text(category.value.title)
@@ -149,6 +146,10 @@ class _NewItemState extends State<NewItem> {
                         }),
                   ),
                 ],
+                // ),
+              ),
+              const SizedBox(
+                width: 8,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -157,11 +158,11 @@ class _NewItemState extends State<NewItem> {
                     onPressed: () {
                       _formkey.currentState!.reset();
                     },
-                    child: Text('Reset'),
+                    child: const Text('Reset'),
                   ),
                   ElevatedButton(
                     onPressed: _saveItem,
-                    child: Text("Add Item"),
+                    child: const Text("Add Item"),
                   ),
                 ],
               ),
