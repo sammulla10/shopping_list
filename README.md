@@ -1,4 +1,4 @@
-# shopping_list
+# Shopping App built using Bloc and Hive
 
 A new Flutter project.
 
